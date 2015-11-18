@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}{{ candidate_list[0].office }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-sm-12">
+        <table class="table table-striped">
+            <tbody>
+                <thead>
+                    <th>Name</th>
+                    <th>Party</th>
+                    <th>Election type</th>
+                    <th>Outcome</th>
+                </thead>
+                {% for candidate in candidate_list %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('views.candidate', candidate_id=candidate.candidate_id) }}">
+                                {{ candidate.first_name }} {{ candidate.last_name}}
+                            </a>
+                        </td>
+                        <td>
+                            {{ candidate.party }}
+                        </td>
+                        <td>
+                            {{ candidate.election_type }}
+                        </td>
+                        <td>
+                            {{ candidate.outcome }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+{% endblock %}

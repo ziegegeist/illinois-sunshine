@@ -50,22 +50,31 @@
         <table class="table table-striped">
             <tbody>
                 <thead>
-                    <th>Election</th>
+                    <th>Name</th>
+                    <th>Election Type</th>
                     <th>Race type</th>
                     <th>Outcome</th>
                 </thead>
-                {% for candidacy in candidate.candidacies|sort(attribute='election_year', reverse=True) %}
+                {% for candidacy in races|groupby('election_year') %}
                     <tr>
-                        <td>
-                            {{ candidacy.election_year }} {{ candidacy.election_type }}
-                        </td>
-                        <td>
-                            {{ candidacy.race_type if candidacy.race_type else '' }}
-                        </td>
-                        <td>
-                            {{ candidacy.outcome if candidacy.outcome else '' }}
-                        </td>
+                        <td colspan=4><h4>{{ candidacy.grouper }}</h4></td>
                     </tr>
+                    {% for person in candidacy.list %}
+                        <tr>
+                            <td>
+                                {{ person.first_name }} {{ person.last_name }}
+                            </td>
+                            <td>
+                                {{ person.election_type }}
+                            </td>
+                            <td>
+                                {{ person.race_type if person.race_type else '' }}
+                            </td>
+                            <td>
+                                {{ person.outcome if person.outcome else '' }}
+                            </td>
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
             </tbody>
         </table>

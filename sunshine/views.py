@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from itertools import groupby
 from operator import attrgetter
 from dateutil.parser import parse
+from collections import OrderedDict
 
 views = Blueprint('views', __name__)
 
@@ -183,6 +184,60 @@ def search():
                            search_date__le=search_date__le,
                            search_date__ge=search_date__ge)
 
+@views.route('/election/<election_year>/')
+def election(election_year):
+    race_list = ''' 
+        SELECT DISTINCT ON(cm.entity_id)
+          cd.office,
+          cd.district,
+          cd.district_type,
+          cm.entity_id
+        FROM candidates AS cd
+        JOIN candidacies AS cc
+          ON cd.id = cc.candidate_id
+        JOIN candidate_entity_map AS cm
+          ON cc.candidate_id = cm.candidate_id::bigint
+        WHERE cc.election_year = :election_year
+        ORDER BY cm.entity_id
+    '''
+
+    race_list = g.engine.execute(sa.text(race_list), 
+                                  election_year=int(election_year))
+    
+    races = OrderedDict()
+    for entity_id, race in groupby(race_list, key=lambda x: x.entity_id):
+        
+        race = list(race)[0]
+        races[entity_id] = dict(zip(race.keys(), race.values()))
+    
+    races = OrderedDict(sorted(races.items(), key=lambda x: str(x[1]['office'])))
+    
+    return render_template('election.html', races=races, election_year=election_year)
+
+@views.route('/race/<election_year>/<entity_id>/')
+def race(election_year, entity_id):
+    candidate_list = ''' 
+        SELECT
+          cd.*,
+          cc.*
+        FROM candidates AS cd
+        JOIN candidacies AS cc
+          ON cd.id = cc.candidate_id
+        JOIN candidate_entity_map AS cm
+          ON cd.id = cm.candidate_id::bigint
+        WHERE cm.entity_id = :entity_id
+          AND cc.election_year = :election_year
+    '''
+    
+    candidate_list = g.engine.execute(sa.text(candidate_list), 
+                                      election_year=int(election_year),
+                                      entity_id=entity_id)
+
+    return render_template('race.html', 
+                           candidate_list=candidate_list, 
+                           election_year=election_year)
+
+
 @views.route('/candidates/<candidate_id>/')
 @cache.cached(timeout=CACHE_TIMEOUT, key_prefix=make_cache_key)
 def candidate(candidate_id):
@@ -200,9 +255,45 @@ def candidate(candidate_id):
 
     supporting = [c for c in candidate.committees]
 
+    races = ''' 
+        SELECT 
+          cd.id, 
+          cd.first_name,
+          cd.last_name,
+          cc.* 
+        FROM candidates AS cd 
+        JOIN candidacies AS cc 
+          ON cd.id = cc.candidate_id 
+        JOIN (
+          SELECT candidate_id::bigint 
+          FROM candidate_entity_map AS m
+          JOIN (
+            SELECT entity_id 
+            FROM candidate_entity_map 
+            WHERE candidate_id::bigint = :candidate_id
+          ) AS e
+            USING(entity_id)
+        ) AS s 
+          ON cd.id = s.candidate_id 
+        INNER JOIN (
+          SELECT 
+            election_year, 
+            election_type 
+          FROM candidacies 
+          WHERE candidate_id = :candidate_id
+        ) AS s2 
+          ON cc.election_year = s2.election_year 
+          AND cc.election_type = s2.election_type 
+        ORDER BY election_year, election_type desc;
+    '''
+    
+    races = g.engine.execute(sa.text(races), 
+                             candidate_id=candidate_id)
+
     return render_template('candidate-detail.html', 
                            candidate=candidate,
-                           supporting=supporting)
+                           supporting=supporting,
+                           races=races)
 
 @views.route('/top-earners/')
 @cache.cached(timeout=CACHE_TIMEOUT, key_prefix=make_cache_key)

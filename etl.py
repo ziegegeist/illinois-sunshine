@@ -441,11 +441,14 @@ class SunshineCandidacy(SunshineTransformLoad):
             row['IncChallOpen'] = self.race_types.get(row['IncChallOpen'])
             
             # Get outcome
-            if row['WonLost'] == 'Won':
-                row['WonLost'] = 'won'
-            elif row['WonLost'] == 'Lost':
-                row['WonLost'] = 'lost'
-            else:
+            try:
+                row['WonLost'] = row['WonLost'].strip().lower()
+            except AttributeError:
+                row['WonLost'] = None
+            
+            if row['WonLost'] == '':
+                row['WonLost'] = None
+            elif row['WonLost'] not in ['won', 'lost']:
                 row['WonLost'] = None
 
             yield OrderedDict(zip(self.header, row.values()))

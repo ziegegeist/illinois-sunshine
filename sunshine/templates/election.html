@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{{ election_year }}{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-sm-12">
+        <table class="table table-striped">
+            <tbody>
+                <thead>
+                    <th>Office</th>
+                    <th>District</th>
+                    <th>District Type</th>
+                </thead>
+                {% for entity_id, race in races.items() %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('views.race', election_year=election_year, entity_id=entity_id) }}">{{ race.office }}</a>
+                        </td>
+                        <td>
+                            {{ race.district }}
+                        </td>
+                        <td>
+                            {{ race.district_type }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+{% endblock %}
